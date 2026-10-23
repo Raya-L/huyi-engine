@@ -1,0 +1,8 @@
+# 病程参数，认知、躯体两套（§6 B 表，待 A3 核实后填）
+# 结构示例（待填）：
+# cognitive:
+#   p_MS: ...        # 认知主因 中度->重度 转移概率
+#   mortality: ...
+# somatic:
+#   ...
+status: empty

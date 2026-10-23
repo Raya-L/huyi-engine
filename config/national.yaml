@@ -1,0 +1,45 @@
+version: v0
+# 政策参数（国家基准）。城市文件只写不同的项。
+# 标 null = 待查 / 未规定（严禁写进对外材料，build_report 会在结果页底部自动列出）。
+# 代码名严格照规格书§6“代码名”列。
+
+rho_employee: 0.70          # 职工基金支付比例
+rho_resident: 0.50          # 居民基金支付比例
+rho_home_bonus: null        # 居家/社区支付比例倾斜（待查）
+lambda: 0.50                # 年度限额系数（≤0.50）
+income_city: 43377          # 上年度城乡居民人均可支配收入（2025 全国，元/年）
+g_income: 0.050             # 人均可支配收入年增长率
+benefit_start: null         # 国家基准：职工居民均已享受
+wait_base_months: 6         # 固定等待期（原则上）
+wait_per_lapse_year: null   # 每断保一年延长等待期（未规定）
+persist_months: 6           # 失能持续期
+process_months: 1.5         # 评估办理期（受理起 30 个工作日内送达结论书）
+reapply_months: 6           # 评估未通过后再申请间隔
+level_valid_years: 2        # 重度结论有效期（≤2 年）
+
+# 居家小时支付标准（元/时）与月服务时长限额（时/月），按重度等级 3/4/5
+R_h:
+  nurse: 60
+  social_worker: 50
+  rehab: 70
+h_cap:
+  employee: [3, 5, 7]
+  resident: [2, 3, 5]
+R_d:                        # 机构床日支付标准（元/日），按 3/4/5 级
+  employee: [22, 35, 50]
+  resident: [15, 22, 35]
+
+# 出处（§7 要求每个参数带 source；空 source 会被 build_report 列为未核实占位）
+sources:
+  rho_employee: "《意见》(六);《实施方案》二(三)2"
+  rho_resident: "同上"
+  lambda: "已核实上限；各市实际限额待查"
+  income_city: "国家统计局 2026-01-19"
+  g_income: "全国 2025 年名义增长 5.0%"
+  wait_base_months: "《实施方案》二(三)5"
+  persist_months: "《意见》(五)"
+  process_months: "国家医保局 2026-08-21 文书解读"
+  reapply_months: "2021 年标准表 A 温馨提示"
+  level_valid_years: "同上文书解读"
+  R_h: "由城市定，国家基准不单列"
+  R_d: "由城市定，国家基准不单列"

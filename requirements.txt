@@ -1,0 +1,6 @@
+# A6 技术骨架依赖，版本已锁定（规格书§7 要求 Python 3.11）
+python==3.11
+streamlit==1.40.0
+pyyaml==6.0.2
+pandas==2.2.0
+numpy==1.26.0

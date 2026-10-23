@@ -1,0 +1,10 @@
+version: v0
+# 青岛：只写与 national 不同的项（§6 A 表 + 第八节第 14 条）
+rho_employee: 0.90
+rho_resident: 0.80        # 2027-01-01 起；此前一档 0.80、二档 0.75
+income_city: 62738        # 2025 青岛全体居民人均可支配收入
+g_income: 0.047
+benefit_start: null       # 职工已在享受
+wait_base_months: null    # 未细化（探索制定）
+wait_per_lapse_year: null # 未规定
+# R_h / h_cap / R_d 与 national 一致，故不重复写；A3 核实后如有差异再补

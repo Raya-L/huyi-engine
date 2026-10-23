@@ -1,0 +1,15 @@
+version: v0
+# 重庆：只写与 national 不同的项（渝府办发〔2026〕36 号 + 渝医保发〔2023〕40 号）
+rho_employee: 0.70
+rho_resident: 0.50
+income_city: 41580        # 2025 重庆全体居民人均可支配收入（待统计公报复核）
+g_income: 0.050           # 暂用全国，待重庆公报复核
+benefit_start_resident: "2027-01-01"   # 居民 2027 起付；职工已在享受
+wait_base_months: 6
+wait_per_lapse_year: 1    # 每断保一年延长 1 年（可补缴修复）
+# 重庆按次结算：上门护理 75 元/次（每次≥50 分钟），不换写为元/时
+R_h:
+  per_visit: 75
+R_d:                       # 机构集中护理（渝医保发〔2023〕40 号）
+  severe: 60
+  moderate: 20

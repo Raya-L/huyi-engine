@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="Gqt4KgWpCzMoDBYawWfGM4">
+<head data-page-node-id="R7HXuHZ3JJUUE9LS61rTrB">
+<meta charset="UTF-8" data-page-node-id="XxauAKHpslxsR9xyvoN8HC">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="RAXH4Y579TlZcqy0zr6rZE">
+<title>护忆有方 · 线框图（手机优先，6 页）</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background:#f4f6f8; color:#222; margin:0; padding:24px; }
+  h1 { font-size:20px; }
+  .note { color:#666; font-size:13px; margin-bottom:20px; }
+  .row { display:flex; flex-wrap:wrap; gap:18px; align-items:flex-start; }
+  .phone { width:300px; background:#fff; border:1px solid #d9dde3; border-radius:22px;
+           box-shadow:0 4px 14px rgba(0,0,0,.08); padding:14px 12px 18px; }
+  .screen { background:#fafbfc; border-radius:14px; min-height:560px; padding:14px 12px; }
+  .topbar { font-size:13px; color:#888; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:10px; }
+  .ptitle { font-size:15px; font-weight:700; margin:4px 0 10px; }
+  .cap { font-size:11px; color:#999; margin-top:10px; text-align:center; }
+  .block { background:#fff; border:1px solid #eef0f3; border-radius:10px; padding:8px 10px; margin:8px 0; font-size:12px; }
+  .block b { color:#1f6feb; }
+  .pill { display:inline-block; background:#eaf2ff; color:#1f6feb; border-radius:20px;
+          font-size:11px; padding:2px 8px; margin:2px 2px 0 0; }
+  .btn { display:block; text-align:center; background:#1f6feb; color:#fff; border-radius:10px;
+         padding:9px; font-size:13px; margin-top:12px; }
+  .warn { background:#fff6e6; border:1px solid #ffd591; color:#ad6800; border-radius:10px;
+          padding:8px; font-size:12px; }
+  .ck { font-size:12px; color:#444; margin-top:8px; }
+</style>
+</head>
+<body data-page-node-id="0I6hZemV9FlErfKg1VHP06">
+<h1 data-page-node-id="GavntAzXY21k9PemIYSpFO">护忆有方 · 线框图（手机优先）</h1>
+<div class="note" data-page-node-id="yR8iQR8lwIqd9NoFe7yAzB">6 页：前 4 页为 app.py 的四个页面，后 2 页为结果页的两个细节。待精算负责人确认：每个输入字段在模型里都有用处。</div>
+<div class="row" data-page-node-id="LZtbYpJjkZes4Sy4wHzHbp">
+
+  <!-- 1 说明 -->
+  <div class="phone" data-page-node-id="rBAKjjxywvmnx6Ted5tKai"><div class="screen" data-page-node-id="Ph11D0qhP2QQ1O2tCJC1NH">
+    <div class="topbar" data-page-node-id="xMrNbdQWWYyd4JrTAQa83H">护忆有方</div>
+    <div class="ptitle" data-page-node-id="KYveBY2gURAs3PJGaRojBH">说明与知情同意</div>
+    <div class="block" data-page-node-id="SHE0aFf2VNRbukoO9FwOa2">用途：估算未来 5/10 年照护花费、长护险与商保能付多少。</div>
+    <div class="block" data-page-node-id="wuuxym67cwpMry4qzrFvOf">不收集姓名/身份证/手机号/详细住址；城市只到地级市。<br data-page-node-id="D8F3WkXkTdD81o9HHMhYkV">不保存录入内容。</div>
+    <div class="block" data-page-node-id="PeDVu3NDkowLFEX5ZGRZW4">不做医学诊断、不做失能等级评定。</div>
+    <label class="ck" data-page-node-id="W5TV1RVdtkmiDWAC3tiG8K">☐ 我已阅读并理解上述说明</label>
+    <div class="btn" data-page-node-id="rRb7gqSG9lpda373sbIvYz">下一步：录入</div>
+    <div class="cap" data-page-node-id="QuuxRWGmIf0DMBZsRPP0tr">第 1 页 / 6</div>
+  </div></div>
+
+  <!-- 2 录入 -->
+  <div class="phone" data-page-node-id="641WurMKWTzCEVCFiP4kCr"><div class="screen" data-page-node-id="XIxQFDx1TvgtKXEDYt4U1j">
+    <div class="topbar" data-page-node-id="MPiMbFOToUHckQCOpvhxzC">录入</div>
+    <div class="ptitle" data-page-node-id="6XuuAeEBnSFDvWTADjnsKz">录入（分四组）</div>
+    <div class="block" data-page-node-id="RQpnMjvbYThd7mJJaMnCF3"><b data-page-node-id="DIDKFnOPiwqXRpJzapyIXl">① 基本情况</b><br data-page-node-id="NDcMkQcUs7pIuIeSJJg7cE"><span class="pill" data-page-node-id="bN7iB2cdk5MNTL8ABYWEbk">年龄</span><span class="pill" data-page-node-id="esfIFYAC29EMAiSGM1cBnp">性别</span><span class="pill" data-page-node-id="WgJshiEcgreU3MEsC2OKUn">城市</span><span class="pill" data-page-node-id="FR1Z77aoMM7DuIJoaMaySR">参保类别</span>…</div>
+    <div class="block" data-page-node-id="sHF0QrFBJ9C99VA1Yic3Fc"><b data-page-node-id="F3BLr5lijsYtkXxbmFAqHg">② 老人现状</b><br data-page-node-id="BW3UDE7fg6In7L0NMxfPKB">ADL 10 项 · 认知 4 项 · 感知觉 3 项（照 2021 标准原文）</div>
+    <div class="block" data-page-node-id="N41Zs6X3ONoxhpw12zwGG3"><b data-page-node-id="TSxNnt72xXwJgKeVFNp5tA">③ 照护安排</b><br data-page-node-id="JM1EC8zryYqYb6zJYRgehh"><span class="pill" data-page-node-id="5xBJstA1zwjS7S3IvoBgXx">照护方式</span><span class="pill" data-page-node-id="tTRkDk1Dszl4FFc7W533n1">认知诊断</span><span class="pill" data-page-node-id="0phePNUBZ4WNTU8uXXq5Zr">持续月数</span>…</div>
+    <div class="block" data-page-node-id="PjXZL640jbop8evKgnfEnD"><b data-page-node-id="Kljt5EZqpWSlX75BP0HVcC">④ 保障与资金</b><br data-page-node-id="mOOXId4txJYcamzeFLcZ5r"><span class="pill" data-page-node-id="7chEWrKUHlMTckngCOzNOk">补贴</span><span class="pill" data-page-node-id="hgHFcu1HdlsTNMn57DDPOz">家庭存款</span><span class="pill" data-page-node-id="XP9Fr872SgvTjEy52wnqJA">月投入</span></div>
+    <div class="btn" data-page-node-id="zEdypRjTh4tI17J2aUr3kr">提交并校验</div>
+    <div class="cap" data-page-node-id="w5u2BxiGzybg4b4XXaR6ml">第 2 页 / 6</div>
+  </div></div>
+
+  <!-- 3 合规 -->
+  <div class="phone" data-page-node-id="uI2hK2D9kC64bGrwW5ycsK"><div class="screen" data-page-node-id="TRuxWE9g0ccuWE2UET50Tf">
+    <div class="topbar" data-page-node-id="VrRZjAR2VVmmCtHrRwbotw">合规提示</div>
+    <div class="ptitle" data-page-node-id="l1F8gKmWSuis3YsufOCUAq">合规提示</div>
+    <div class="warn" data-page-node-id="fWTH5D6GzobYhJLTM3V6bm">本工具不做医学诊断，也不做失能等级评定，结果仅为财务测算与科普参考。请到记忆门诊就诊，到定点评估机构申请评估。</div>
+    <label class="ck" data-page-node-id="Z06oeK1IcX4KfmdTvOpBLv">☐ 我已知晓上述提示，并同意继续查看结果</label>
+    <div class="btn" data-page-node-id="N2vssGKEz3wTfOiUVx3eDK">查看结果</div>
+    <div class="cap" data-page-node-id="yVXVTcZC1wzI739YIkpgGr">第 3 页 / 6</div>
+  </div></div>
+
+  <!-- 4 结果 -->
+  <div class="phone" data-page-node-id="yEywjqU0jgCppR2gACrIQg"><div class="screen" data-page-node-id="BqG1GkppiH0h6BrHeVFqO7">
+    <div class="topbar" data-page-node-id="9rOgkjD1hIrtZ2TK8r1yl5">结果</div>
+    <div class="ptitle" data-page-node-id="mM3oEhiN7adu1kOuUlCorC">测算结果（§5 八块）</div>
+    <div class="block" data-page-node-id="xiWIHRdz00IFMw9l7xkSla">1 摘要</div>
+    <div class="block" data-page-node-id="LbBMt4CNLOmvy15nphOpWA">2 逐年明细</div>
+    <div class="block" data-page-node-id="9F9xRxgCp9M3pturhGpPqZ">3 分情形说明 ›</div>
+    <div class="block" data-page-node-id="5Eq06e8MkNkTHyDVec2i9Z">4 敏感性</div>
+    <div class="block" data-page-node-id="fhKKE4Er5Insyiky4p1ER0">5 失智纳保情景</div>
+    <div class="block" data-page-node-id="fQkjQHphsmnTFjKzgCe7P2">6 保障组合区间 ›</div>
+    <div class="block" data-page-node-id="tekFr7NAGQEuNl0ty7HMtO">7 待遇时间线</div>
+    <div class="block" data-page-node-id="gDOCdLFzIwnrmBFmP67eF2">8 限额提示</div>
+    <div class="cap" data-page-node-id="pWSVz0bD2JXiDh3rCAJ9Ei">第 4 页 / 6</div>
+  </div></div>
+
+  <!-- 5 分情形说明 -->
+  <div class="phone" data-page-node-id="u42Mpgd5EUiClVk9MoyXIO"><div class="screen" data-page-node-id="zQf0jke46Ain8HGElvyMxV">
+    <div class="topbar" data-page-node-id="eFpf6fNVBnjfImbJieeVFM">结果 › 分情形说明</div>
+    <div class="ptitle" data-page-node-id="tlezOvHFyZVxApRLh3Q6vk">分情形说明</div>
+    <div class="block" data-page-node-id="3lsPwyc3P0lsdFvqqLEy2N">若按<b data-page-node-id="uv0gE20nTPEaRXzwuY04n8">中度</b>情形测算：每年照护费约 X 元，长护险约付 Y 元。</div>
+    <div class="block" data-page-node-id="gnJKh5Gahm7Ksd9c8sN89R">若按<b data-page-node-id="TEFq8LgCsfyBGQ4r7dvQf7">重度(3级)</b>情形测算：每年照护费约 X 元，长护险约付 Y 元。</div>
+    <div class="block" data-page-node-id="TDYvxUSwjZvgjDGn55WDhJ">若按<b data-page-node-id="Kp9mC5hU2FeSMOdcZbsyge">重度(4级)</b>情形测算：…</div>
+    <div class="block" data-page-node-id="EUHqCqmj2auwFguj3xgGAd">若按<b data-page-node-id="dqCOYAJRaeH6tHzCNZXxNA">重度(5级)</b>情形测算：…</div>
+    <div class="cap" data-page-node-id="UEnj5hFBM6z7bnxQSTLt7M">第 5 页 / 6 · 结果页细节</div>
+  </div></div>
+
+  <!-- 6 保障组合 -->
+  <div class="phone" data-page-node-id="NrMYXWD1aLEA7IRUjXzfwZ"><div class="screen" data-page-node-id="O1WPLkwYypelHchddFbeW1">
+    <div class="topbar" data-page-node-id="pCIrMlIAEm9U1lQX2McfOZ">结果 › 保障组合</div>
+    <div class="ptitle" data-page-node-id="JB8ZJYjnb9wrkj95VjbYMR">保障组合区间</div>
+    <div class="block" data-page-node-id="0lOMCEPri9u4212XyFAA3G">需补足额 = 10 年缺口(P50/P90) − 家庭可用资金现值</div>
+    <div class="block" data-page-node-id="NFlDlhQ8w7zDs4FE0dAGwU">若 &gt; 0：约需年给付 <b data-page-node-id="nx5UIHLNYzDNTCHBn9tTLO">A 至 B 元</b>、给付期 n 年。</div>
+    <div class="block" data-page-node-id="JRAQb8cL9C2giNAiCJ3RGr">若 ≤ 0：现有资金在中间情形下可覆盖。</div>
+    <div class="warn" data-page-node-id="qZ9G2gVVprkqhn2GwZgLh7">不出现任何公司或产品名称，不排序。</div>
+    <div class="cap" data-page-node-id="BFheTUZTQ24CjyC70x2G18">第 6 页 / 6 · 结果页细节</div>
+  </div></div>
+
+</div>
+</body>
+</html>

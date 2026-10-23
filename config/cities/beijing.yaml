@@ -1,0 +1,14 @@
+version: v0
+# 北京：特殊情形（§6 A 表后说明）。待遇起始未定，现行长护险支付记 0。
+# 另给“若按国家基准于 2029 年起付”的对照数（B5 处理）。
+rho_employee: 0.0          # 现行长护险支付记 0
+rho_resident: 0.0
+lambda: 0.50
+income_city: null         # 待 A3 补
+g_income: 0.050
+benefit_start: null       # 待遇起始未定
+wait_base_months: 6
+persist_months: 6
+process_months: 1.5
+level_valid_years: 2
+note: "北京作特殊情形，现行长护险支付记 0；若按国家基准于 2029 年起付另给对照数"
