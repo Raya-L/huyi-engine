@@ -26,9 +26,21 @@ engine/
   report.py     §5 八块报告 + 合规提示 + 运行留痕
 config/         national.yaml + cities/*.yaml + settings/assessment/disease + cost/*.csv
 tests/          B6 手算对账（data/handcalc_expected.json）+ 限额单点 + 页面冒烟
+tools/          推送备用通道（见下）
 app.py          Streamlit 四页页面
 wireframes.html 页面线框（评审用）
 ```
+
+## 推送（网络受限时的备用通道）
+有些校园网/代理会切断 `github.com:443`，但放通 `api.github.com`，此时
+`git push` 会报 `Empty reply from server`。用 Git Data API 绕过：
+
+```bash
+python tools/push_via_api.py <你的PAT>          # 推本地领先远端的全部提交
+```
+
+Git 是内容寻址的，脚本会原样复现 tree / 作者 / 时间 / message，所以远端的 commit sha
+与本地**完全一致**，不会造成分叉；token 只在命令行传，不写进任何文件。
 
 ## 校验口径
 `pytest -q` 一共 19 个测试：
