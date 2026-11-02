@@ -1,14 +1,188 @@
-version: v0
-# 北京：特殊情形（§6 A 表后说明）。待遇起始未定，现行长护险支付记 0。
-# 另给“若按国家基准于 2029 年起付”的对照数（B5 处理）。
-rho_employee: 0.0          # 现行长护险支付记 0
-rho_resident: 0.0
-lambda: 0.50
-income_city: null         # 待 A3 补
-g_income: 0.050
-benefit_start: null       # 待遇起始未定
-wait_base_months: 6
-persist_months: 6
-process_months: 1.5
-level_valid_years: 2
-note: "北京作特殊情形，现行长护险支付记 0；若按国家基准于 2029 年起付另给对照数"
+---
+# 北京市政策参数 beijing.yaml
+# 「护忆有方」测算模型 — 北京特殊情形配置
+# 负责人：殷子桐  版本：v0.1.4  日期：2026-11-01
+# v0.1.4：补北京 2025 年全市居民人均可支配收入 89090 元、增长 4.3%（北京市统计局 2026-01-21）
+# v0.1.3（审阅修订）：年度限额必须用北京本地收入（不能用全国 43377）；
+#         持续期、办理期、再申请间隔、结论有效期为国家统一规定，按国家基准取值。
+# v0.1.2：统一结构；rho 改单值 value，对照情景 0.70/0.50 移入
+#         settlement_periods.counterfactual 段；补 lambda；covers_moderate 改 employee/resident 写法。
+# v0.1 修订：仅加结算口径说明（对照情景按国家基准）
+version: "v0.1.4"
+city: "beijing"
+updated: "2026-11-01"
+
+settlement_periods:
+  - period: "current_other_districts"
+    mode: "none"
+    applies_to: ["employee", "resident"]
+    source: "北京市医保局官网截至2026-10-23未检索到全市统一实施细则"
+    status: "待确认"
+    note: "非石景山区现行无待遇，长护险支付记 0"
+  - period: "counterfactual"
+    from: "2029-01-01"
+    mode: "rho_on_eligible_cost"
+    applies_to: ["employee", "resident"]
+    rho_employee: 0.70
+    rho_resident: 0.50
+    source: "对照情景假设：按国家基准"
+    status: "情景设定"
+    note: "对照情景：按国家基准，基金支付 = rho × 符合规定费用，受年度限额约束；年度限额 L = lambda × 上年度城乡居民人均可支配收入"
+
+rho_employee:
+  value: 0.0
+  note: "非石景山区现行无待遇；对照情景 0.70 见 settlement_periods.counterfactual"
+  source: "—"
+  status: "现行记0；对照情景为国家基准"
+  validity: "待确认"
+
+rho_resident:
+  value: 0.0
+  note: "非石景山区现行无待遇；对照情景 0.50 见 settlement_periods.counterfactual"
+  source: "—"
+  status: "现行记0；对照情景为国家基准"
+  validity: "待确认"
+
+rho_home_bonus:
+  value: null
+  note: "现行无待遇"
+  source: "—"
+  status: "—"
+  validity: "待确认"
+
+lambda:
+  value: 0.50
+  note: "年度限额系数；年度限额 L = lambda × 上年度城乡居民人均可支配收入；现行无待遇不触发，对照情景按国家基准上限"
+  source: "《意见》(六)"
+  status: "已核实上限；现行不适用"
+  validity: "待确认"
+
+income_city:
+  value: 89090
+  year: 2025
+  note: "对照情景年度限额 = 0.5 × 89090 = 44545 元/年"
+  source: "北京市统计局 2026-01-21《2025年全市居民人均可支配收入同比增长4.3%》"
+  source_url: "https://tjj.beijing.gov.cn/zxfbu/202601/t20260121_4451962.html"
+  status: "已核实（统计局发布）；请再对《北京市2025年国民经济和社会发展统计公报》原文复核一次"
+  validity: "现行"
+
+g_income:
+  value: 0.043
+  source: "同上，名义增长 4.3%"
+  source_url: "https://tjj.beijing.gov.cn/zxfbu/202601/t20260121_4451962.html"
+  status: "已核实"
+  validity: "现行"
+
+benefit_start:
+  employee: "未定"
+  resident: "未定"
+  note: "现行记0；另算对照情景假设2029年起按国家基准支付；石景山区本次不做配置，结果页提示以石景山区医保局规定为准"
+  source: "北京市医保局官网截至2026-10-23未检索到全市统一实施细则"
+  status: "待确认"
+  validity: "待确认"
+
+wait_base_months:
+  value: null
+  note: "现行无待遇；对照情景按国家基准 6"
+  source: "—"
+  status: "待确认"
+  validity: "待确认"
+
+wait_per_lapse_year:
+  value: null
+  note: "现行无待遇"
+  source: "—"
+  status: "待确认"
+  validity: "待确认"
+
+persist_months:
+  value: 6
+  note: "国家统一规定，北京对照情景按国家基准"
+  source: "《意见》(五)"
+  status: "已核实（国家口径）"
+  validity: "现行"
+
+process_months:
+  value: 1.5
+  note: "国家统一规定，北京对照情景按国家基准"
+  source: "受理起30个工作日内送达结论书（国家医保局2026-08-21文书解读）"
+  status: "已核实（国家口径）"
+  validity: "现行"
+
+reapply_months:
+  value: 6
+  note: "国家统一规定，北京对照情景按国家基准"
+  source: "2021年评估标准表A温馨提示"
+  status: "已核实（国家口径）"
+  validity: "现行"
+
+level_valid_years:
+  value: 2
+  note: "国家统一规定，北京对照情景按国家基准"
+  source: "国家医保局2026-08-21文书解读"
+  status: "已核实（国家口径）"
+  validity: "现行"
+
+home_unit: null
+
+R_h:
+  value: null
+  note: "现行无待遇"
+  source: "—"
+  status: "待确认"
+  validity: "待确认"
+
+R_d:
+  value: null
+  note: "现行无待遇"
+  source: "—"
+  status: "待确认"
+  validity: "待确认"
+
+R_v:
+  value: null
+  source: "—"
+  status: "待确认"
+  validity: "待确认"
+
+covers_moderate:
+  employee: false
+  employee_effective_from: null
+  resident: false
+  resident_note: "现行无待遇"
+  source: "—"
+  status: "现行无待遇"
+  validity: "待确认"
+
+covers_dementia:
+  value: false
+  source: "—"
+  status: "现行无待遇"
+  validity: "待确认"
+
+dementia_rule:
+  value: null
+  source: "—"
+  status: "—"
+  validity: "待确认"
+
+transition_end_year:
+  value: null
+  source: "—"
+  status: "—"
+  validity: "待确认"
+
+post_transition:
+  value: null
+  source: "—"
+  status: "—"
+  validity: "待确认"
+
+result_notice_other: "按现行规定，长护险目前不支付，10年缺口约X万元；若北京按国家基准于2029年起付，约Y万元。"
+result_notice_shijingshan: "石景山区为国家长护险试点区，待遇以石景山区医保局规定为准。"
+not_found_notice: "截至查阅日未检索到北京市统一实施细则"
+
+to_verify:
+  - "除石景山外无待遇：目前只有二手来源，答辩前须以北京市医保局原文确认"
+  - "2028年底前覆盖：未检索到明确表述，答辩前须以北京市医保局原文确认"
+  - "2026-10-23访问北京市医保局官网ybj.beijing.gov.cn，通知公告截至2026-10-22未出现长护险全市统一实施细则"

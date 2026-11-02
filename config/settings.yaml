@@ -1,6 +1,80 @@
-version: v0
-# 全局财务/模拟参数（§6 财务类，已定）
-g: 0.050            # 价格年增长率（占位，待精算定基准）
-r: 0.030            # 折现率（占位）
-n_sims: 2000        # 模拟次数（指南建议不少于 1000）
-seed: 20261025      # 随机种子（保证同输入可复核）
+# 全局财务/模拟参数（§6 D 表，已定）
+# 说明：本文件在 load_params 里最后合并，故这里的键会覆盖城市配置中的同名键。
+version: "v0.1.4"
+engine_version: "v0.1.5"
+
+g:
+  value: 0.050
+  source: "文献区间 0.03–0.06（规格书§6 D）；基准取 5%"
+  status: "文献区间（基准已定）"
+
+r:
+  value: 0.017
+  source: "10 年期国债收益率，2026-08 约 1.68%–1.72%；取 1.7%（年中折现）"
+  status: "已核实"
+  scenarios: [0.0, 0.045]   # 情景另算：0 与 4.5%（药物经济学评价指南第 2 版征求意见稿）
+
+n_sims:
+  value: 2000
+  source: "规格书§4 第 6 小节（指南建议不少于 1000）"
+  status: "已定"
+
+seed:
+  value: 20261025
+  source: "规格书§4：固定随机种子，保证同输入可复核；代码只从此处读取，不得写死"
+  status: "已定"
+
+# 成本表缺样本时的回退口径（不写死判断逻辑，交给配置）
+cost_fallback:
+  mode: "institution"
+  note: "所选照护方式在成本表中无样本时，按机构价替代（偏高，缺口结论偏保守），结果页提示"
+  source: "A6 工程约定：宁可高估缺口，不可给家庭虚假安全感"
+  status: "工程约定"
+
+# 成本表格子的可信度门槛（分工任务3：status 为“样本不足”的格子不能当正式结果输出）
+cost_status_policy:
+  trusted: ["可用", "已核实", "可用（原文）"]
+  action: "mark"     # mark = 照算但在结果页标注、不进对外材料；block = 直接拒绝输出
+  source: "分工任务3；待殷子桐 11/04 前定最终处理口径"
+  status: "开关，按配置生效"
+
+# 敏感性分析：8 个参数逐个在低值/高值之间摆动（§5 第 4 块）
+# 低/高值来自文献区间；为 null 表示尚待参数组（殷子桐）补齐，run_sensitivity 会跳过并回报
+sensitivity:
+  price_monthly:
+    low: null
+    high: null
+    note: "月度照护价格 ±：取成本表 total_low / total_high"
+    status: "由成本表直接生成，无需额外取值"
+  p_MS:
+    low: 0.28
+    high: 0.36
+    source: "NACC 2024 31%；Potashman 2021 28.6%；Davis 2018 36%"
+    status: "文献区间"
+  mu_S:
+    low: null
+    high: null
+    status: "待殷子桐补（规格书§6 B 表未给 μ_S 区间）"
+  rho:
+    low: 0.70
+    high: 0.90
+    source: "国家基准 0.70 与青岛 0.90 之间"
+    status: "文献区间"
+  lambda:
+    low: null
+    high: null
+    status: "待补：各市实际年度限额"
+  duration_cap:
+    low: null
+    high: null
+    status: "待补：支付标准与时长限额"
+  g:
+    low: 0.030
+    high: 0.060
+    source: "规格书§6 D：照护价格年增长率 0.03–0.06"
+    status: "文献区间"
+  r:
+    low: 0.0
+    high: 0.045
+    source: "规格书§5：情景另算 0 和 4.5%"
+    status: "已核实"

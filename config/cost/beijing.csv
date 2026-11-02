@@ -1,1 +1,4 @@
-﻿城市,区,机构或来源名称,照护方式,是否认知症专区,适用程度,床位费,护理费,餐费,杂费,报价日期,来源类型,链接或电话
+﻿city,care_mode,dementia_unit,severity,n_institutions,n_with_N_O_split,N_low,N_mid,N_high,O_low,O_mid,O_high,total_low,total_mid,total_high,status,sources
+北京,institution,否,中度,1,1,2850,2850,2850,7400,7400,7400,10250,10250,10250,样本不足,北京市养老护理照料示范中心
+北京,institution,否,轻度,1,1,1200,1200,1200,7400,7400,7400,8600,8600,8600,样本不足,北京市养老护理照料示范中心
+北京,institution,否,重度,1,1,5500,5500,5500,7400,7400,7400,12900,12900,12900,样本不足,北京市养老护理照料示范中心

@@ -1,5 +1,5 @@
-# A6 技术骨架依赖，版本已锁定（规格书§7 要求 Python 3.11）
-python==3.11
+# 部署依赖（Streamlit Cloud 用这份）
+# 规格书§7 要求 Python 3.11：在 Streamlit Cloud 的 Advanced settings 里选 3.11
 streamlit==1.40.0
 pyyaml==6.0.2
 pandas==2.2.0

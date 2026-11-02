@@ -9,6 +9,7 @@ engine/schema.py  —— 输入输出的数据结构（A6 第 2 件）
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional
+import datetime
 
 
 # ---------------- 枚举（取值严格照 §2） ----------------
@@ -162,6 +163,8 @@ class Household:
     mmse: Optional[int] = None                     # 0–30，仅用于青岛失智初筛判断
     months_since_last_fail: Optional[int] = None
     dementia_unit: bool = False                    # 仅 institution 时填
+    # 校验通过但需要提醒用户的事项（不阻断提交，例如“官方结论已过期”）
+    warnings: List[str] = field(default_factory=list)
 
 
 # ---------------- 引擎中间/输出结构 ----------------
@@ -172,6 +175,8 @@ class InitialState:  # map_initial_state 的返回（§3）
     cause: str           # cognitive / somatic
     eligible: bool       # 长护险资格
     use_official: bool   # 是否采用官方结论
+    sev_level: Optional[int] = None   # 重度等级 3/4/5（非重度为 None）
+    dementia_qualified: bool = False  # 是否按本市细则认定为重度失智（青岛）
 
 
 # YearTable：run_deterministic 的返回，逐年明细（§5 第 2 块）。
@@ -202,13 +207,22 @@ def validate_input(raw: dict):
     # —— 取值范围校验（§2）——
     if not (60 <= int(raw.get("age", 0)) <= 100):
         errors.append("age 需在 60–100 之间")
-    adl_fields = ["eat", "dress", "groom", "bowel", "bladder", "toilet", "walk", "transfer", "stairs", "bath"]
+
+    # ADL 每项只能取规定档位（2021 评估标准表 C1；分工表2）
+    ADL_TIERS = {
+        "walk": [0, 5, 10, 15], "transfer": [0, 5, 10, 15],
+        "groom": [0, 5], "bath": [0, 5],
+        "eat": [0, 5, 10], "dress": [0, 5, 10], "bowel": [0, 5, 10],
+        "bladder": [0, 5, 10], "toilet": [0, 5, 10], "stairs": [0, 5, 10],
+    }
+    adl_fields = list(ADL_TIERS.keys())
     adl_sum = 0
     for f in adl_fields:
         v = int(raw.get(f, 0))
-        if v < 0 or v > 100:
-            errors.append(f"adl.{f} 超出范围")
+        if v not in ADL_TIERS[f]:
+            errors.append(f"adl.{f} 只能取 {ADL_TIERS[f]} 分")
         adl_sum += v
+
     cog_fields = ["time", "person", "place", "memory"]
     cog_sum = sum(int(raw.get(f, 0)) for f in cog_fields)
     sense_fields = ["vision", "hearing", "comm"]
@@ -218,15 +232,34 @@ def validate_input(raw: dict):
     if not (0 <= sense_sum <= 12):
         errors.append("感知觉合计需在 0–12")
 
+    # MMSE 可空（Task5）：没做过则为 None；填了必须在 0–30
+    mmse = raw.get("mmse")
+    mmse_val = None
+    if mmse not in (None, ""):
+        try:
+            mmse_val = int(mmse)
+            if not (0 <= mmse_val <= 30):
+                errors.append("mmse 需在 0–30 之间")
+        except (TypeError, ValueError):
+            errors.append("mmse 格式错误")
+
     # —— 特殊规则 1：满分但不进测算 ——
     if adl_sum == 100 and cog_sum == 16 and sense_sum == 12 \
        and raw.get("cognition") in (None, "none", "suspected"):
         errors.append("SPECIAL:NO_MODEL")  # 页面改为输出科普+就诊提示
 
     # —— 特殊规则 2：official_level 过期 ——
-    # （过期判断需结合 official_valid_until 与当前日期，B5 完善；此处留接口）
-    if raw.get("official_level") not in (None, "none"):
-        pass  # TODO(B5): 若 official_valid_until < 今天 -> 提示“结论已过期，需重新评估”
+    # §2：结论已过期的要提示“需重新评估”，并改按录入项目测算（不阻断提交）
+    warnings: List[str] = []
+    ol = raw.get("official_level")
+    vu = raw.get("official_valid_until")
+    if ol not in (None, "none") and vu:
+        try:
+            if datetime.date.fromisoformat(str(vu)[:10]) < datetime.date.today():
+                warnings.append("结论已过期，需重新评估：本次已按录入的 17 项测算，"
+                                "不再采用原结论等级。")
+        except (ValueError, TypeError):
+            warnings.append("结论书日期格式无法识别，已按录入的 17 项测算。")
 
     if errors:
         return None, errors
@@ -247,7 +280,7 @@ def validate_input(raw: dict):
         sense=Sense(**{f: int(raw[f]) for f in sense_fields}),
         cognition=Cognition(raw["cognition"]),
         cdr=Cdr(raw["cdr"]) if raw.get("cdr") else None,
-        mmse=raw.get("mmse"),
+        mmse=mmse_val,
         months_in_state=int(raw["months_in_state"]),
         months_since_last_fail=raw.get("months_since_last_fail"),
         care_mode=CareMode(raw["care_mode"]),
@@ -259,4 +292,5 @@ def validate_input(raw: dict):
         family_funds=float(raw.get("family_funds", 0)),
         family_monthly=float(raw.get("family_monthly", 0)),
     )
+    h.warnings = warnings
     return h, []

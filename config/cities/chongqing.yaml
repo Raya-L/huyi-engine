@@ -1,15 +1,203 @@
-version: v0
-# 重庆：只写与 national 不同的项（渝府办发〔2026〕36 号 + 渝医保发〔2023〕40 号）
-rho_employee: 0.70
-rho_resident: 0.50
-income_city: 41580        # 2025 重庆全体居民人均可支配收入（待统计公报复核）
-g_income: 0.050           # 暂用全国，待重庆公报复核
-benefit_start_resident: "2027-01-01"   # 居民 2027 起付；职工已在享受
-wait_base_months: 6
-wait_per_lapse_year: 1    # 每断保一年延长 1 年（可补缴修复）
-# 重庆按次结算：上门护理 75 元/次（每次≥50 分钟），不换写为元/时
+---
+# 重庆市政策参数 chongqing.yaml
+# 「护忆有方」测算模型 — 重庆配置（只写与国家基准不同的项）
+# 负责人：殷子桐  版本：v0.1.2  日期：2026-10-27
+# v0.1.2：统一结构；covers_moderate 已为 employee/resident 写法（保持）；
+#         settlement_periods 段式补 applies_to/note 字段对齐 schema。
+# v0.1.1：20 号文次数上限已对原文复核，关闭待复核备注
+# v0.1 修订（审阅后）：
+#   1. 结算口径按 2026-10-23 第二通电话（工号 9350）改为“按标准定额结算、不再乘支付比例”（2026 年）；
+#   2. 2027 年起按渝府办发〔2026〕36 号改为按比例支付，两套规则用 period 分段；
+#   3. 上门次数上限中度“组合/单独”原写反，已按参数表改正（仍待对渝医保发〔2025〕20 号原文复核）；
+#   4. 补入居家组合护理 50 元的拆分（机构护理 30 + 个人护理 20），删去“经办数值有出入”的备注（经核对 40 号文原文，两者一致）。
+version: "v0.1.2"
+city: "chongqing"
+updated: "2026-10-27"
+
+settlement_periods:
+  - period: "pilot"
+    until: "2026-12-31"
+    mode: "fixed_amount"
+    applies_to: ["employee"]
+    source: "渝医保发〔2023〕40号 三；渝医保发〔2025〕20号；2026-10-23 电话核实（12393，工号 9350）：结算时不会再乘比例，按标准直接结算"
+    status: "已核实（原文 + 电话）"
+    note: "标准即基金支付额，不乘 rho；居民 2027 年前无待遇。fixed_amount 段不受年度限额约束（定额本身即封顶）"
+  - period: "new_system"
+    from: "2027-01-01"
+    mode: "rho_on_eligible_cost"
+    applies_to: ["employee", "resident"]
+    source: "渝府办发〔2026〕36号：2027 年调整职工筹资和待遇标准；支付比例约 70%/50%"
+    status: "已核实比例；2027 年起的支付标准与计费单元待重庆细则公布"
+    note: "基金支付 = rho × 符合规定的费用，受年度限额约束；年度限额 L = lambda × 上年度全市城乡居民人均可支配收入。国家医保局 2026-08《关于做好长期护理保险支付管理工作的指导意见》要求按时长计费、试点地区约 3 年过渡，重庆的按次、按日标准届时可能调整"
+
+rho_employee:
+  value: 0.70
+  effective_from: "2027-01-01"
+  note: "左右；2026 年职工为定额结算，不使用本参数"
+  source: "渝府办发〔2026〕36号 三(二)"
+  status: "已核实"
+  validity: "现行（2027 起适用）"
+
+rho_resident:
+  value: 0.50
+  effective_from: "2027-01-01"
+  note: "左右；居民 2027 年起享受待遇"
+  source: "渝府办发〔2026〕36号 三(二)"
+  status: "已核实"
+  validity: "现行（2027 起适用）"
+
+rho_home_bonus:
+  value: null
+  note: "细则未规定"
+  source: "渝府办发〔2026〕36号未规定居家社区倾斜具体数值"
+  status: "已核实：细则未规定"
+  validity: "—"
+
+lambda:
+  value: 0.50
+  note: "年度限额系数；年度限额 L = lambda × 上年度全市城乡居民人均可支配收入；原则上上限值，重庆实际限额待查"
+  source: "《意见》(六)"
+  status: "已核实上限；实际限额待查"
+  validity: "现行"
+
+income_city:
+  value: 41580
+  year: 2025
+  source: "《2025年重庆市国民经济和社会发展统计公报》第九节"
+  source_url: "http://tjj.cq.gov.cn/zwgk_233/fdzdgknr/tjxx/sjzl_55471/tjgb_55472/202603/t20260326_15568538.html"
+  status: "已核实，2026-10-23用统计公报原文复核确认"
+  validity: "现行"
+
+g_income:
+  value: 0.047
+  source: "《2025年重庆市国民经济和社会发展统计公报》第九节，增长4.7%"
+  source_url: "http://tjj.cq.gov.cn/zwgk_233/fdzdgknr/tjxx/sjzl_55471/tjgb_55472/202603/t20260326_15568538.html"
+  status: "已核实，原待查暂用全国0.050已更正"
+  validity: "现行"
+
+benefit_start:
+  employee: "已在享受"
+  resident: "2027-01-01"
+  source: "渝府办发〔2026〕36号 一、三(一)"
+  status: "已核实"
+  validity: "现行"
+
+wait_base_months:
+  value: 6
+  effective_from: "2027-01"
+  source: "渝府办发〔2026〕36号 三(三)"
+  status: "已核实"
+  validity: "现行"
+
+wait_per_lapse_year:
+  value: 1
+  note: "可补缴修复"
+  source: "渝府办发〔2026〕36号 三(三)"
+  status: "已核实"
+  validity: "现行"
+
+persist_months:
+  value: 6
+  source: "《意见》(五)"
+  status: "已核实"
+  validity: "现行"
+
+process_months:
+  value: 1.5
+  source: "受理起30个工作日内送达结论书"
+  status: "已核实"
+  validity: "现行"
+
+reapply_months:
+  value: 6
+  source: "2021年评估标准表A温馨提示"
+  status: "已核实"
+  validity: "现行"
+
+level_valid_years:
+  value: 2
+  note: "不超过2"
+  source: "国家医保局2026-08-21文书解读"
+  status: "已核实"
+  validity: "现行"
+
+home_unit: "visit"
+
 R_h:
-  per_visit: 75
-R_d:                       # 机构集中护理（渝医保发〔2023〕40 号）
-  severe: 60
-  moderate: 20
+  value: null
+  note: "重庆居家按次计费，不使用 R_h，见 R_v"
+  source: "—"
+  status: "不适用"
+  validity: "—"
+
+R_d:
+  unit: "元/日·人"
+  severe:
+    home_combined: 50
+    home_combined_institution_part: 30
+    home_combined_personal_part: 20
+    institution_visit: 60
+    institution_centralized: 60
+  moderate:
+    home_combined: 20
+    home_combined_institution_part: 12
+    home_combined_personal_part: 8
+    institution_visit: 20
+    institution_centralized: 20
+  source: "渝医保发〔2023〕40号 三，2024-03-01起实施"
+  status: "已核实原文；2026-10-23 通话（工号 9350）经办所说“机构 30、个人护理 20”即居家组合护理 50 元的两部分，与原文一致"
+  validity: "现行（试点期，至 2026-12-31）"
+  standard_applies_to: "fixed_amount"
+
+R_v:
+  value: 75
+  unit: "元/次"
+  effective_from: "2025-08-01"
+  min_minutes: 50
+  v_cap_severe_combined: 12
+  v_cap_severe_single: 24
+  v_cap_moderate_combined: 5
+  v_cap_moderate_single: 8
+  source: "渝医保发〔2025〕20号；政策解读补充每次不少于50分钟"
+  status: "已核实；2026-10-23 通话（工号 9326）确认 75 元/次为按次结算标准。中度次数上限按“组合 5 次、单独 8 次”改正（原配置写反），2026-10-27 已对 20 号文原文截图复核一致"
+  validity: "现行（试点期）"
+  standard_applies_to: "fixed_amount"
+
+covers_moderate:
+  employee: true
+  employee_effective_from: "2024-03-01"
+  employee_until: "2026-12-31"
+  employee_after_2027: null
+  employee_after_2027_note: "36号文未把中度失能列为 2027 年后的待遇条件，需向经办确认；未确认前情景 B（默认）按不覆盖计"
+  resident: false
+  resident_note: "2027年起步只保重度"
+  source: "渝府办发〔2026〕36号；渝医保发〔2023〕40号"
+  status: "2026 年职工已核实；2027 年后待确认"
+  validity: "现行"
+
+covers_dementia:
+  value: false
+  source: "渝府办发〔2026〕36号"
+  status: "已核实"
+  validity: "现行"
+
+dementia_rule:
+  value: null
+  source: "—"
+  status: "—"
+  validity: "—"
+
+transition_end_year:
+  value: 2029
+  note: "推定，非文件明文"
+  source: "《意见》要求3年左右过渡"
+  status: "推定"
+  validity: "—"
+
+post_transition:
+  default: "B"
+  scenario_B_note: "职工中度覆盖取消，其余沿用"
+  scenario_A_note: "维持现行"
+  source: "B偏保守，A进敏感性分析"
+  status: "情景设定"
+  validity: "—"

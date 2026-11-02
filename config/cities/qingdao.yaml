@@ -1,10 +1,194 @@
-version: v0
-# 青岛：只写与 national 不同的项（§6 A 表 + 第八节第 14 条）
-rho_employee: 0.90
-rho_resident: 0.80        # 2027-01-01 起；此前一档 0.80、二档 0.75
-income_city: 62738        # 2025 青岛全体居民人均可支配收入
-g_income: 0.047
-benefit_start: null       # 职工已在享受
-wait_base_months: null    # 未细化（探索制定）
-wait_per_lapse_year: null # 未规定
-# R_h / h_cap / R_d 与 national 一致，故不重复写；A3 核实后如有差异再补
+---
+# 青岛市政策参数 qingdao.yaml
+# 「护忆有方」测算模型 — 青岛配置（只写与国家基准不同的项）
+# 负责人：殷子桐  版本：v0.1.2  日期：2026-10-27
+# v0.1.2：统一结构；补全 settlement_periods 注释里年度限额约束语
+#         （v0.1.1 “基金支付 = rho × min(实际费用, 支付标准)” 未写年度限额封顶，已补完整）；
+#         covers_moderate 改 employee/resident 写法。
+# v0.1.1 修订（审阅后）：
+#   1. 写明结算口径：标准为费用上限，再乘支付比例（2026-10-23 电话核实）；
+#   2. 补入居民 2027 年前的分档比例（一档 0.80、二档 0.75），模型从 2026 年起算需要；
+#   3. 发布会日期统一为 4 月 17 日（4 月 18 日为报道日）。
+#   4. 失智专区沿用 12 号文标准（失智职工 50、居民 35 元/天，封顶后乘比例）；青人社发〔2016〕27 号的 65 元/天“定额包干”为历史试点口径，不再使用。
+version: "v0.1.2"
+city: "qingdao"
+updated: "2026-10-27"
+
+settlement_periods:
+  - period: "current"
+    mode: "cap_then_rho"
+    applies_to: ["employee", "resident"]
+    source: "青医保发〔2021〕12号；2026-10-23 电话核实（0532-85706325）：护理员 50 元/时 × 90%"
+    status: "已核实（原文 + 电话）"
+    note: "基金支付 = rho × min(实际费用, 支付标准)，年度不超过限额；年度限额 L = lambda × 上年度全市城乡居民人均可支配收入"
+
+rho_employee:
+  value: 0.90
+  source: "青政办字〔2026〕16号 三(二)"
+  status: "已核实"
+  validity: "现行"
+
+rho_resident:
+  value: 0.80
+  effective_from: "2027-01-01"
+  before_2027:
+    tier1: 0.80
+    tier2: 0.75
+    model_default: 0.75
+  note: "2027 年前居民按一档 0.80、二档 0.75 执行；不知道家庭参保档次时取较低值（缺口偏保守），结果页提示"
+  source: "青政办字〔2026〕16号 三(二)（原文截图已核对）；2026-04-17 发布会（青岛日报 4-18 报道）"
+  status: "已核实"
+  validity: "现行"
+
+rho_home_bonus:
+  value: null
+  note: "细则未规定"
+  source: "青政办字〔2026〕16号未规定居家社区倾斜具体数值"
+  status: "已核实：细则未规定"
+  validity: "—"
+
+lambda:
+  value: 0.50
+  note: "年度限额系数；年度限额 L = lambda × 上年度全市城乡居民人均可支配收入；上限值，青岛实际限额待查"
+  source: "《意见》(六)"
+  status: "已核实上限；实际限额待查"
+  validity: "现行"
+
+income_city:
+  value: 62738
+  year: 2025
+  source: "《2025年青岛市国民经济和社会发展统计公报》九，全市居民口径"
+  status: "已核实"
+  validity: "现行"
+
+g_income:
+  value: 0.047
+  source: "《2025年青岛市国民经济和社会发展统计公报》，增长4.7%"
+  status: "已核实"
+  validity: "现行"
+
+benefit_start:
+  employee: "已在享受"
+  resident: "已在享受"
+  source: "青政办字〔2026〕16号"
+  status: "已核实"
+  validity: "现行"
+
+wait_base_months:
+  value: null
+  note: "未细化，探索制定；引擎遇 null 时按国家基准 6 个月计，结果页注明为假设"
+  source: "青政办字〔2026〕16号"
+  status: "已核实：未细化"
+  validity: "现行"
+
+wait_per_lapse_year:
+  value: null
+  note: "未规定"
+  source: "—"
+  status: "已核实：未规定"
+  validity: "—"
+
+persist_months:
+  value: 6
+  source: "《意见》(五)"
+  status: "已核实"
+  validity: "现行"
+
+process_months:
+  value: 1.5
+  source: "受理起30个工作日内送达结论书"
+  status: "已核实"
+  validity: "现行"
+
+reapply_months:
+  value: 6
+  source: "2021年评估标准表A温馨提示"
+  status: "已核实"
+  validity: "现行"
+
+level_valid_years:
+  value: 2
+  note: "不超过2"
+  source: "国家医保局2026-08-21文书解读"
+  status: "已核实"
+  validity: "现行"
+
+home_unit: "hour"
+
+R_h:
+  by_staff:
+    nursing_worker: 50
+    social_worker: 50
+    nurse: 60
+    rehab_therapist: 70
+    rehab_assistant: 70
+  weekly_hours_employee: [3, 5, 7]
+  weekly_hours_resident: [2, 3, 5]
+  monthly_cap_employee: [660, 1050, 1500]
+  monthly_cap_resident: [450, 660, 1050]
+  dementia_ref_level: 5
+  source: "青医保发〔2021〕12号及政策问答"
+  status: "已核实原文"
+  validity: "现行，2026-10-23通话确认有效"
+  standard_applies_to: "E_then_rho"
+
+R_d:
+  employee: [22, 35, 50]
+  resident: [15, 22, 35]
+  dementia_employee: 50
+  dementia_resident: 35
+  source: "青医保发〔2021〕12号"
+  status: "已核实原文"
+  validity: "现行，2026-10-23通话确认有效"
+  standard_applies_to: "E_then_rho"
+
+R_v:
+  value: null
+  source: "—"
+  status: "不适用（青岛按小时计费）"
+  validity: "—"
+
+covers_moderate:
+  employee: false
+  employee_effective_from: null
+  resident: false
+  resident_note: "青岛只保重度"
+  source: "青政办字〔2026〕16号"
+  status: "已核实"
+  validity: "现行"
+
+covers_dementia:
+  value: true
+  source: "青政办字〔2026〕16号 三(一)及2026-04-17 发布会（青岛日报 4-18 报道）"
+  status: "已核实"
+  validity: "现行"
+
+dementia_rule:
+  mmse_threshold: 9
+  requires_diagnosis: true
+  requires_formal_assessment: true
+  institution_ref_level: 5
+  allowed_modes: ["institution", "day_care"]
+  excluded_modes: ["home_visit"]
+  source: "青医保发〔2021〕12号及政策问答；青医保发〔2024〕8号"
+  status: "已核实原文"
+  validity: "现行，青医保发12号通话确认有效"
+
+transition_end_year:
+  value: 2029
+  note: "推定，非文件明文"
+  source: "《意见》要求3年左右过渡；青政办字16号写3年左右过渡"
+  status: "推定"
+  validity: "—"
+
+post_transition:
+  default: "B"
+  scenario_B:
+    rho_employee: 0.70
+    rho_resident: 0.50
+    note: "小时与床日标准在新标准公布前沿用现值"
+  scenario_A:
+    note: "维持现行"
+  source: "B偏保守，A进敏感性分析"
+  status: "情景设定"
+  validity: "—"
