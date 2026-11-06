@@ -225,3 +225,22 @@ def test_shijingshan_notice():
     rep = build_report(h, load_params("beijing"), with_sensitivity=False)
     assert any("石景山" in n for n in rep["data_notes"])
 
+
+
+def test_combo_consistent_with_depletion_year():
+    """10 年现值够、但逐年现金流先断时，第 6 块不能再说“可覆盖”（与第 7 块一致）。"""
+    from engine.report import build_report
+    raw = dict(age=79, sex="female", city="qingdao", insured_type="employee",
+               cognition="moderate", cdr="2", mmse=15, months_in_state=12,
+               care_mode="institution", dementia_unit=True, enroll_status="continuous",
+               official_level="none", family_funds=100000, family_monthly=1500,
+               subsidy_monthly=0, caregiver_income_loss=0,
+               eat=10, dress=5, groom=0, bowel=10, bladder=5, toilet=5,
+               walk=10, transfer=10, stairs=5, bath=0,
+               time=1, person=2, place=1, memory=1, vision=3, hearing=3, comm=2)
+    h, errs = validate_input(raw)
+    assert errs == []
+    r = build_report(h, load_params("qingdao"), with_sensitivity=False)
+    assert "资金缺口" in r["timeline"]
+    assert "可覆盖" not in r["combo"]["text"]
+    assert "先用完" in r["combo"]["text"]

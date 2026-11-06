@@ -216,7 +216,8 @@ def _policy_scenario(h: Household, p: Params, T: int, pv10: float):
 
 
 # ---------------- 第 6 块：保障组合区间 ----------------
-def _combo(h: Household, p: Params, band10: dict, T: int) -> dict:
+def _combo(h: Household, p: Params, band10: dict, T: int, rows: list = None,
+           depleted_year: int = None) -> dict:
     """
     与摘要同一口径：用成本表低/中/高三档的 10 年缺口现值（中间 = mid，偏重 = high），
     和家庭可用资金现值比较，倒推需要补充的年给付额。
@@ -236,7 +237,15 @@ def _combo(h: Household, p: Params, band10: dict, T: int) -> dict:
         out["tiers"].append(item)
 
     t0 = out["tiers"][0]
-    if t0["need_pv"] <= 0:
+    # 10 年总量够、但缺口集中在前几年时，逐年现金流会先断：与第 7 块“资金缺口年份”保持一致
+    shortfall = max([0.0] + [-float(r.get("balance", 0.0)) for r in (rows or [])])
+    if t0["need_pv"] <= 0 and depleted_year:
+        out["text"] = (
+            f"按 10 年总额看，现有资金大致够用；但照护缺口集中在前几年，按逐年现金流预计 "
+            f"{depleted_year} 年资金先用完，最紧的时候约差 {_wan(_hundred(shortfall))} 万元，"
+            f"需要提前准备这笔周转资金。")
+        out["shortfall_peak"] = _hundred(shortfall)
+    elif t0["need_pv"] <= 0:
         out["text"] = "现有资金在中间情形下可覆盖，暂不需要额外补充商业护理保险。"
     else:
         out["text"] = (
@@ -333,7 +342,7 @@ def build_report(h: Household, p: Params, T: int = 10, with_sensitivity: bool = 
     policy_cf = _policy_scenario(h, p, T, mid10)
 
     # —— 6. 保障组合区间 ——
-    combo = _combo(h, p, summary["band_10"], T)
+    combo = _combo(h, p, summary["band_10"], T, rows, meta.get("depleted_year"))
 
     # —— 7. 待遇时间线 ——
     timeline = _timeline(h, p, meta, init) if init is not None else ""
