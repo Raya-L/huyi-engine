@@ -94,3 +94,19 @@ def test_result_page_without_input(app_module):
     app_module.st.session_state.pop("household", None)
     app_module.st.session_state["ack_compliance"] = True
     app_module.page_result(_Ctx())
+
+
+def test_shijingshan_shows_notice_only(app_module, monkeypatch):
+    """北京石景山区：只显示试点提示，不调用 build_report、不出金额（分工任务 10）。"""
+    from engine.schema import validate_input
+    h, errs = validate_input(_raw(city="beijing", district="shijingshan", dementia_unit=False))
+    assert errs == []
+    called = []
+    monkeypatch.setattr(app_module, "build_report", lambda *a, **kw: called.append(1))
+    infos = []
+    monkeypatch.setattr(app_module.st, "info", lambda msg, *a, **kw: infos.append(msg))
+    app_module.st.session_state["household"] = h
+    app_module.st.session_state["ack_compliance"] = True
+    app_module.page_result(_Ctx())
+    assert called == []
+    assert any("石景山" in m for m in infos)

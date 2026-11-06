@@ -11,7 +11,7 @@ from engine.schema import (
     Household, ADL, Cog, Sense, Sex, City, InsuredType, Cognition,
     CareMode, Policy, PayoutType, Trigger, validate_input,
 )
-from engine.model import load_params
+from engine.model import load_params, val
 from engine.report import build_report
 
 
@@ -47,8 +47,9 @@ def page_intro(tab):
 
         **我们如何保护您**：
         - 不收集姓名、身份证号、手机号、详细住址；城市只精确到地级市。
-        - 不保存您录入的内容（本工具在您本地浏览器中运行，提交即算，不留底）。
+        - 不保存您录入的内容：只在本次打开的页面里计算，不写入任何数据库，关闭页面即清空。
         - 不做医学诊断、不做失能等级评定；结果仅为财务测算与科普参考。
+        - 不推销保险：页面不出现任何保险公司或保险产品名称，也不推荐购买。
         """)
         st.checkbox("我已阅读并理解上述说明", key="consent_intro")
 
@@ -57,7 +58,7 @@ def page_intro(tab):
 def page_input(tab):
     with tab:
         st.title("录入")
-        st.caption("家属在门诊/保险/社区工作人员陪同下 5 分钟内填完。带 * 为必填。")
+        st.caption("家属可自行填写，约 5 分钟。带 * 为必填。")
 
         raw = {}
         # —— A. 基本情况 ——
@@ -177,10 +178,14 @@ def page_compliance(tab):
     with tab:
         st.title("合规提示")
         st.warning("""
-        **本工具不做医学诊断，也不做失能等级评定，结果仅为财务测算和科普参考。**
-        请到记忆门诊就诊，到定点评估机构申请评估。
+        **本工具不诊断、不评级、不卖保险。**
+        - 不做医学诊断：是否失智、属于哪一期，请到记忆门诊就诊。
+        - 不做失能等级评定：长护险待遇以定点评估机构的结论为准。
+        - 不推销保险：结果只说明已有保障够不够，不推荐任何保险公司或产品。
+
+        结果仅为财务测算和科普参考，实际待遇以当地医保部门规定为准。
         """)
-        st.checkbox("我已知晓上述提示，并同意继续查看结果", key="ack_compliance")
+        st.checkbox("我已知悉", key="ack_compliance")
 
 
 # ===================== 页面 4：结果（§5 八块） =====================
@@ -197,6 +202,12 @@ def page_result(tab):
             return
 
         p = load_params(h.city.value)
+        # 分工任务 10：北京石景山区只显示提示，不算钱（试点细则未配置，规格书“北京分区本次不做”）
+        if h.city.value == "beijing" and h.district is not None and h.district.value == "shijingshan":
+            st.info(val(p, "result_notice_shijingshan")
+                    or "石景山区为国家长护险试点区，待遇以石景山区医保局规定为准。")
+            st.caption("本工具暂未配置石景山区试点细则，因此不对石景山区给出金额测算。")
+            return
         with st.spinner("正在按您的城市政策逐年测算…"):
             report = build_report(h, p)
 
