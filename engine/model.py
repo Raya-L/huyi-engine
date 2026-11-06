@@ -280,7 +280,8 @@ def _insurance_pay(h: Household, pol, t: int, grade: int, pibar: dict,
     # 给付期
     start_t = math.ceil((pol.wait_months or 0) / 12) if pol.wait_months else 1
     if pol.payout_type.value == "lump":
-        return float(pol.amount) if t == start_t else 0.0
+        # 一次性给付同样按年中处于触发状态的概率 π̄ 计入（11/03 精算决定 4，与 B6 一致）
+        return float(pol.amount) * (pibar["S1"] + pibar["S2"]) if t == start_t else 0.0
     # annual
     if pol.term_years and t - start_t + 1 > pol.term_years:
         return 0.0
@@ -340,6 +341,7 @@ def _simulate(init: InitialState, h: Household, p: Params, T: int = 10,
 
     rows = []
     cum_G = 0.0
+    carry = 0.0                                           # 商业保险结余（结转下年）
     pv5 = pv10 = 0.0
     depleted_year = None
     for t in range(1, T + 1):
@@ -406,7 +408,11 @@ def _simulate(init: InitialState, h: Household, p: Params, T: int = 10,
             ins += _insurance_pay(h, pol, t, init.grade, bar, lost_n, init.cause)
         surv = 1.0 - pi[IDX["D"]]
         subsidy = 12.0 * float(h.subsidy_monthly or 0.0) * surv
-        gap = max(0.0, exp_cost - exp_ltc - ins - subsidy)
+        # 商业保险超出当年缺口的部分结转下年（11/03 精算决定 3；结余不计息）
+        avail_ins = carry + ins
+        pre_gap = max(0.0, exp_cost - exp_ltc - subsidy)
+        gap = max(0.0, pre_gap - avail_ins)
+        carry = max(0.0, avail_ins - pre_gap)
         cum_G += gap
         df = 1.0 / ((1 + r) ** (t - 0.5))
         PV = gap * df
@@ -440,6 +446,7 @@ def _simulate(init: InitialState, h: Household, p: Params, T: int = 10,
             "G": float(gap), "cum_G": float(cum_G), "balance": float(balance),
             "df": df, "PV": float(PV),
             "K": ins,  # 兼容 B6 手算表的列名
+            "carry": float(carry),  # 对应 B6 AA 列“商业保险结余”
         })
 
     return rows, pv5, pv10, {

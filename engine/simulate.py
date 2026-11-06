@@ -121,7 +121,14 @@ def run_stochastic(h: Household, p: Params, T: int = 10, n: int = None,
     ltc = is_S2 * bS
     ins = _ins_matrix(h, paths, init)                    # 逐路径、逐保单
     sb = alive * subs_raw
-    gap = np.maximum(0.0, cost - ltc - ins - sb)
+    # 商业保险超出当年缺口的部分结转下年（与 model._simulate 同一口径）
+    pre_gap = np.maximum(0.0, cost - ltc - sb)
+    gap = np.zeros_like(pre_gap, dtype=float)
+    carry = np.zeros(pre_gap.shape[0])
+    for t in range(pre_gap.shape[1]):
+        avail = carry + ins[:, t]
+        gap[:, t] = np.maximum(0.0, pre_gap[:, t] - avail)
+        carry = np.maximum(0.0, avail - pre_gap[:, t])
 
     cost_pv, ltc_pv, ins_pv, sub_pv, gap_pv = (cost * df, ltc * df, ins * df,
                                                sb * df, gap * df)
