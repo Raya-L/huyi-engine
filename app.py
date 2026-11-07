@@ -250,7 +250,8 @@ def page_result(tab):
 
         # ---------- 2. 逐年明细 ----------
         st.header("2. 逐年明细（确定性模式）")
-        st.dataframe(pd.DataFrame(report["year_table"]), hide_index=True,
+        # 年份按文字显示，避免表格把 2026 显示成“2,026”
+        st.dataframe(pd.DataFrame(report["year_table"]).astype({"年份": str}), hide_index=True,
                      use_container_width=True)
         st.caption("这一张表就是手算对账的对象：列名、口径与 B6 校验表一致。"
                    "成本按各状态概率加权，故为期望值；长护险只在“重度持续”阶段支付。")
