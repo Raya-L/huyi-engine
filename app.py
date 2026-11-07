@@ -37,6 +37,12 @@ MODE_LABEL = {"family": "家人照护", "live_in": "住家保姆", "home_visit":
               "day_care": "日间照料", "institution": "机构照护"}
 
 
+# 敏感性参数的页面名称（不在页面上显示代码名和内部备注）
+PARAM_CN = {"price_monthly": "照护价格档次", "p_MS": "中度转重度的年转移概率", "mu_S": "重度阶段死亡率",
+            "rho": "长护险支付比例", "lambda": "年度支付限额", "duration_cap": "支付时长上限",
+            "g": "照护价格年增长率", "r": "折现率"}
+
+
 # ===================== 页面 1：说明与知情同意 =====================
 def page_intro(tab):
     with tab:
@@ -260,16 +266,15 @@ def page_result(tab):
         top3 = report["sensitivity"]["top3"]
         if top3:
             st.dataframe(pd.DataFrame(
-                [{"参数": t["key"], "低值情景 10 年缺口": f"{t['pv10_low']:,.0f}",
+                [{"参数": PARAM_CN.get(t["key"], t["key"]), "低值情景 10 年缺口": f"{t['pv10_low']:,.0f}",
                   "高值情景 10 年缺口": f"{t['pv10_high']:,.0f}",
                   "摆动幅度": f"{t['swing']:,.0f}"} for t in top3]),
                 hide_index=True, use_container_width=True)
         else:
-            st.info("敏感性参数区间尚未补齐（参数组 11/04 前提供），本块暂不展示。")
+            st.info("敏感性参数区间尚未补齐，本块暂不展示。")
         if report["sensitivity"]["skipped"]:
-            st.caption("暂未纳入（区间待补）：" + "；".join(
-                f"{d['key']}（{d.get('reason') or '待补'}）"
-                for d in report["sensitivity"]["skipped"]))
+            st.caption("以下参数的区间尚未确定，暂未纳入敏感性分析：" + "、".join(
+                PARAM_CN.get(d["key"], d["key"]) for d in report["sensitivity"]["skipped"]) + "。")
 
         # ---------- 5. 失智纳保情景 ----------
         dem = report["dementia_scenario"]
