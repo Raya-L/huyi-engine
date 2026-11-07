@@ -1,7 +1,7 @@
 # 全局财务/模拟参数（§6 D 表，已定）
 # 说明：本文件在 load_params 里最后合并，故这里的键会覆盖城市配置中的同名键。
 version: "v0.1.4"
-engine_version: "v0.1.5"
+engine_version: "v1.0.0"
 
 g:
   value: 0.050
@@ -54,7 +54,7 @@ sensitivity:
   mu_S:
     low: null
     high: null
-    status: "待殷子桐补（规格书§6 B 表未给 μ_S 区间）"
+    status: "区间待补（规格书§6 B 表未给区间，精算负责人补）"
   rho:
     low: 0.70
     high: 0.90

@@ -16,7 +16,7 @@ from engine.model import (
     settlement_for, rho_for, load_params,
 )
 
-ENGINE_VERSION = "v0.1.5"
+ENGINE_VERSION = "v1.0.0"
 COMPLIANCE = ("本工具不做医学诊断，也不做失能等级评定，结果仅为财务测算和科普参考。"
               "请到记忆门诊就诊，到定点评估机构申请评估。")
 
@@ -376,7 +376,7 @@ def build_report(h: Household, p: Params, T: int = 10, with_sensitivity: bool = 
             "all": len(sens["items"]),
             "skipped": sens["skipped"],
             "text": "参数逐个在低值与高值之间摆动，其余取基准，记录 10 年缺口现值的变化；"
-                    "影响最大的三个见龙卷风图。",
+                    "影响最大的三个列在下表。",
         },
         "dementia_scenario": dementia,
         "policy_scenario": policy_cf,
