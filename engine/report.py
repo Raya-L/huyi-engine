@@ -16,7 +16,7 @@ from engine.model import (
     settlement_for, rho_for, load_params,
 )
 
-ENGINE_VERSION = "v1.0.0"
+ENGINE_VERSION = "v1.0.1"
 COMPLIANCE = ("本工具不做医学诊断，也不做失能等级评定，结果仅为财务测算和科普参考。"
               "请到记忆门诊就诊，到定点评估机构申请评估。")
 
