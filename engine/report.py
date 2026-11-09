@@ -98,6 +98,10 @@ def _scenarios(h: Household, p: Params, rows: list) -> list:
         elif key == "M" and not _covers_moderate(p, insured):
             pay = 0.0
             tail = "中度不在本市长护险支付范围"
+        elif key == "M":
+            # 本市对中度失能也有支付（如重庆职工），v1.0 模型只在重度持续状态计算支付，如实说明
+            pay = 0.0
+            tail = "本市对中度失能也有长护险支付，本工具当前版本暂未计入，实际自付会略少"
         else:
             pay = 0.0
             tail = "长护险只在“重度持续”阶段开始支付，这一段需自付"
