@@ -57,6 +57,33 @@ def val(p: dict, *path):
     return cur
 
 
+def start_ym(p: dict, ov: dict = None):
+    """测算起点（年, 月）。settings.yaml 的 start_ym 为 "auto" 时取当天；也可写 "2026-01"。
+    overrides 里的 start_ym 优先（测试与复算用）。"""
+    v = (ov or {}).get("start_ym") or val(p, "start_ym") or "auto"
+    if isinstance(v, (tuple, list)):
+        return int(v[0]), int(v[1])
+    if str(v) == "auto":
+        import datetime
+        d = datetime.date.today()
+        return d.year, d.month
+    y, m = str(v).split("-")[:2]
+    return int(y), int(m)
+
+
+def rule_year(y0: int, m0: int, t: int) -> int:
+    """第 t 个测算年（从 y0 年 m0 月起算的第 t 个 12 个月）的年中所在日历年。"""
+    return y0 + t - 1 + (m0 - 1 + 6) // 12
+
+
+def period_label(y0: int, m0: int, t: int) -> str:
+    """第 t 个测算年的起止月，如“2026.11—2027.10”。"""
+    ys, ms = y0 + t - 1, m0
+    me = ms - 1 if ms > 1 else 12
+    ye = ys + 1 if ms > 1 else ys
+    return f"{ys}.{ms:02d}—{ye}.{me:02d}"
+
+
 def load_params(city: str = "national", version: str = None) -> Params:
     """
     合并国家基准 + 城市配置 + 测算设置后的全部参数（§6）。
@@ -253,39 +280,67 @@ def _cost_amounts(row: dict, variant: str = None):
     return base, Ns[1]
 
 
-def _insurance_pay(h: Household, pol, t: int, grade: int, pibar: dict,
-                   lost_n: int, cause: str) -> float:
-    """
-    单份商业保险在第 t 年的给付（名义值）。§4：
-    - ci_dementia：主因为认知且处于 S1/S2 触发；不接受确诊即赔
-    - ltc_adl：ADL 丧失项数 >= adl_n 触发
-    - ltc_official：社保失能等级 >= min_level 触发
-    annual 按年给付、lump 一次性给付（计入触发当年）。
-    """
+def _grade_of_state(init, s: str) -> int:
+    """各状态对应的社保失能等级（供 ltc_official 触发判断）。
+    起始状态取测算等级；进展到的状态取该状态的最低可能等级：中度 2 级，重度取重度等级（缺省 3）。"""
+    if s == init.state and s in ("L", "M"):
+        return int(init.grade or 0)
+    if s == "L":
+        return 1
+    if s == "M":
+        return max(2, int(init.grade or 0)) if init.state == "M" else 2
+    return int(init.sev_level or max(3, int(init.grade or 0)))
+
+
+def trigger_states(pol, init, lost_n: int) -> set:
+    """保单在哪些状态下处于“已触发”。触发集合对病情是单调的（只进不退）。"""
     trig = pol.trigger.value
     if trig == "ci_dementia":
-        hit = (cause == "cognitive") and (pibar["S1"] + pibar["S2"] > 0)
-    elif trig == "ltc_adl":
-        hit = lost_n >= (pol.adl_n or 0)
-    elif trig == "ltc_official":
-        hit = grade >= (pol.min_level or 0)
-    else:
-        hit = False
-    if not hit:
-        return 0.0
+        return {"S1", "S2"} if init.cause == "cognitive" else set()
+    if trig == "ltc_official":
+        return {s for s in ("L", "M", "S1", "S2")
+                if _grade_of_state(init, s) >= (pol.min_level or 0)}
+    if trig == "ltc_adl":
+        # 只知道录入时的丧失项数；进展后的项数未知，审慎起见不推定新触发
+        return {"L", "M", "S1", "S2"} if lost_n >= (pol.adl_n or 0) else set()
+    return set()
 
-    # 等待期：月 -> 年（第 t 年之前不计）
-    if (t - 1) * 12 < (pol.wait_months or 0):
+
+def policy_wait_year(pol):
+    """剩余等待期 W（月）-> 等待期结束所在的年 tw（>=1）和结束时点在该年中的位置 frac。
+    W=0 时按年中给付（frac=0.5），与半周期校正一致。"""
+    w = float(pol.wait_months or 0)
+    tw = max(1, math.ceil(w / 12.0)) if w > 0 else 1
+    frac = max(0.5, w / 12.0 - (tw - 1))
+    return tw, frac
+
+
+def _insurance_pay(pol, t: int, pi_prev: np.ndarray, pi_cur: np.ndarray, pibar: dict,
+                   P: np.ndarray, dp: dict, T_set: set) -> float:
+    """
+    单份商业保险在第 t 年的期望给付（名义值）。v1.0.1 口径：
+    - 一次性给付：第 t 年给付 = 保额 × 当年首次进入触发状态的概率；
+      等待期内已触发的，在等待期结束当年按“届时仍存活”的概率给付。
+      起始即处于触发状态、无剩余等待期的，按年中存活概率在第 1 年给付。
+    - 按年给付：等待期结束后，每年 = 年给付额 × 当年处于触发状态的半周期概率，至给付年限止。
+    """
+    if not T_set:
         return 0.0
-    # 给付期
-    start_t = math.ceil((pol.wait_months or 0) / 12) if pol.wait_months else 1
+    tw, frac = policy_wait_year(pol)
+    if t < tw:
+        return 0.0
+    tidx = [IDX[s] for s in T_set]
+    out_idx = [i for i in range(len(STATES)) if STATES[i] not in T_set and STATES[i] != "D"]
+    flow = float(sum(pi_prev[i] * P[i, j] for i in out_idx for j in tidx))
     if pol.payout_type.value == "lump":
-        # 一次性给付同样按年中处于触发状态的概率 π̄ 计入（11/03 精算决定 4，与 B6 一致）
-        return float(pol.amount) * (pibar["S1"] + pibar["S2"]) if t == start_t else 0.0
-    # annual
-    if pol.term_years and t - start_t + 1 > pol.term_years:
+        if t == tw:
+            mu = {"L": dp["mu_L"], "M": dp["mu_M"], "S1": dp["mu_S"], "S2": dp["mu_S"]}
+            alive_w = sum(float(pi_prev[IDX[s]]) * (1.0 - mu[s] * frac) for s in T_set)
+            return float(pol.amount) * (alive_w + flow)
+        return float(pol.amount) * flow
+    if pol.term_years and t - tw + 1 > pol.term_years:
         return 0.0
-    return float(pol.amount) * (pibar["S1"] + pibar["S2"])
+    return float(pol.amount) * sum(pibar[s] for s in T_set)
 
 
 def _ltc_wait_months(h: Household, p: Params) -> float:
@@ -329,10 +384,12 @@ def _simulate(init: InitialState, h: Household, p: Params, T: int = 10,
     lamb = float(ov.get("lambda", val(p, "lambda") or 0.0))
     I = float(val(p, "income_city") or 0.0)
     gI = float(val(p, "g_income") or 0.0)
+    g_Rd = float(ov.get("g_Rd", val(p, "g_Rd") or 0.0))
     fallback_mode = val(p, "cost_fallback", "mode")
     variant = ov.get("cost_variant")          # None -> 取中值 mid
 
     lost_n = _adl_lost_n(h)
+    y0, m0 = start_ym(p, ov)
     wait_m = _ltc_wait_months(h, p)
     first_pay_t = math.ceil(wait_m / 12) if wait_m else 1
     trusted_status = val(p, "cost_status_policy", "trusted") or []
@@ -345,7 +402,7 @@ def _simulate(init: InitialState, h: Household, p: Params, T: int = 10,
     pv5 = pv10 = 0.0
     depleted_year = None
     for t in range(1, T + 1):
-        year = 2025 + t                                   # Task6：第 1 年 = 2026
+        year = rule_year(y0, m0, t)                       # 第 t 个测算年的年中所在日历年，用于套用当年政策
         pi_prev = pi.copy()
         pi = pi @ P
         pibar = 0.5 * (pi_prev + pi)
@@ -381,31 +438,34 @@ def _simulate(init: InitialState, h: Household, p: Params, T: int = 10,
         if mode == "none":
             rho = 0.0
 
-        # 符合规定费用 E（基年，机构按床日）：min(N_重度, 30.4 × R_d)
+        # 符合规定费用 E_t：min(N_重度 × 价格增长, 30.4 × R_d × 床日标准增长)
+        # v1.0.1：床日支付标准是政策定额，不随照护价格增长；单设增长率 g_Rd（默认 0）
         c_sev, _ = _cost_lookup(cost, cm, du, "severe", fallback_mode)
         Nsev = _cost_amounts(c_sev, variant)[1] if c_sev else 0.0
         Rd = R_d_for(p, insured, sev_level, du)
+        rd_growth = (1 + g_Rd) ** (t - 1)
         # 有床日标准时 E 受 min(N, 30.4×R_d) 约束；无床日标准（如单年用例）则按实际护理费计
-        E = 12.0 * (min(Nsev, 30.4 * Rd) if Rd else Nsev)
+        E = 12.0 * (min(Nsev * growth, 30.4 * Rd * rd_growth) if Rd else Nsev * growth)
         L_t = lamb * I * (1 + gI) ** (t - 1)
 
         if mode == "fixed_amount":
             B = E
         elif mode in ("cap_then_rho", "rho_on_eligible_cost"):
-            B = min(rho * E * growth, L_t)
+            B = min(rho * E, L_t)
         else:
             B = 0.0
         if t < first_pay_t:
             B = 0.0
         hit_cap = (mode in ("cap_then_rho", "rho_on_eligible_cost")
-                   and rho * E * growth > L_t and t >= first_pay_t)
+                   and rho * E > L_t and t >= first_pay_t)
 
         # 期望现金流（用半周期概率）
         exp_cost = sum(bar[s] * Cs[s] for s in ("L", "M", "S1", "S2"))
         exp_ltc = bar["S2"] * B                       # 仅“重度持续”在享受待遇
         ins = 0.0
         for pol in h.policies:
-            ins += _insurance_pay(h, pol, t, init.grade, bar, lost_n, init.cause)
+            ins += _insurance_pay(pol, t, pi_prev, pi, bar, P, dp,
+                                  trigger_states(pol, init, lost_n))
         surv = 1.0 - pi[IDX["D"]]
         subsidy = 12.0 * float(h.subsidy_monthly or 0.0) * surv
         # 商业保险超出当年缺口的部分结转下年（11/03 精算决定 3；结余不计息）
@@ -427,7 +487,7 @@ def _simulate(init: InitialState, h: Household, p: Params, T: int = 10,
             depleted_year = year
 
         rows.append({
-            "t": t, "year": year,
+            "t": t, "year": year, "period": period_label(y0, m0, t),
             "surv": float(surv),
             "pi_L": float(pi[IDX["L"]]), "pi_M": float(pi[IDX["M"]]),
             "pi_S1": float(pi[IDX["S1"]]), "pi_S2": float(pi[IDX["S2"]]),
@@ -453,7 +513,8 @@ def _simulate(init: InitialState, h: Household, p: Params, T: int = 10,
         "depleted_year": depleted_year,
         "cost_notes": notes,
         "low_confidence": low_confidence,
-        "first_pay_year": 2025 + first_pay_t,
+        "first_pay_year": rule_year(y0, m0, first_pay_t),
+        "start_ym": (y0, m0),
         "adl_lost_n": lost_n,
     }
 

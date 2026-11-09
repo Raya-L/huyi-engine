@@ -14,7 +14,7 @@ import numpy as np
 from engine.schema import Household, Params, Distribution
 from engine.model import (
     STATES, IDX, load_disease, load_params, _transition_matrix,
-    run_deterministic_full, val, _adl_lost_n,
+    run_deterministic_full, val, _adl_lost_n, trigger_states, policy_wait_year,
 )
 
 
@@ -42,43 +42,51 @@ def _pct(x: np.ndarray) -> dict:
     return {"P10": float(q[0]), "P50": float(q[1]), "P90": float(q[2])}
 
 
-def _ins_matrix(h: Household, paths: np.ndarray, init) -> np.ndarray:
+def _ins_matrix(h: Household, paths: np.ndarray, init, dp: dict) -> np.ndarray:
     """
-    逐路径、逐保单算商保给付（§4 商业保险触发）。
-    一次性给付按"这条路径当年是否处于 S"判定，不做概率摊薄，避免高估。
+    逐路径、逐保单算商保给付，与确定性模式（model._insurance_pay）同一口径：
+    - 一次性给付：路径首次进入触发状态的那一年给付；若此时仍在剩余等待期内，
+      推迟到等待期结束那一年，届时须仍存活（当年去世的按“死于等待期结束之后”的概率 1−frac 计）。
+    - 按年给付：等待期结束后，按年初、年末是否处于触发状态的平均（半周期）计。
+    触发状态按病情逐年更新（ltc_official 的社保等级随进展到中度、重度而提高）。
     """
     n, T = paths.shape
     out = np.zeros((n, T))
     if not h.policies:
         return out
-    is_S = (paths == IDX["S1"]) | (paths == IDX["S2"])
     lost_n = _adl_lost_n(h)
+    prev_all = np.concatenate([np.full((n, 1), IDX[init.state], dtype=np.int8), paths], axis=1)
+    mu = {"L": dp["mu_L"], "M": dp["mu_M"], "S1": dp["mu_S"], "S2": dp["mu_S"]}
     for pol in h.policies:
-        trig = pol.trigger.value
-        if trig == "ci_dementia":
-            if init.cause != "cognitive":
-                continue
-            hit = is_S
-        elif trig == "ltc_adl":
-            hit = is_S if lost_n >= (pol.adl_n or 0) else np.zeros_like(is_S)
-        elif trig == "ltc_official":
-            hit = is_S if init.grade >= (pol.min_level or 0) else np.zeros_like(is_S)
-        else:
+        T_set = trigger_states(pol, init, lost_n)
+        if not T_set:
             continue
-
-        wait = int(pol.wait_months or 0)
-        start_t = math.ceil(wait / 12) if wait else 1        # 1-based
-        for t in range(T):
-            yr = t + 1
-            if yr < start_t:
-                continue
-            if pol.payout_type.value == "lump":
-                if yr == start_t:
-                    out[:, t] += np.where(hit[:, t], float(pol.amount), 0.0)
-            else:
-                if pol.term_years and yr - start_t + 1 > pol.term_years:
+        tidx = [IDX[s] for s in T_set]
+        inT = np.isin(prev_all, tidx)                     # (n, T+1)，第 0 列为起始状态
+        dead = prev_all == IDX["D"]
+        tw, frac = policy_wait_year(pol)
+        amt = float(pol.amount)
+        if pol.payout_type.value == "lump":
+            for t in range(1, T + 1):
+                if t < tw:
                     continue
-                out[:, t] += np.where(hit[:, t], float(pol.amount), 0.0)
+                if t == tw:
+                    # 年初已在触发状态（含等待期内触发的）：年末存活全额；当年去世按 1−frac
+                    at_start = inT[:, t - 1]
+                    pay = np.where(at_start & ~dead[:, t], amt,
+                                   np.where(at_start & dead[:, t], amt * (1.0 - frac), 0.0))
+                    newly = (~inT[:, t - 1]) & inT[:, t]
+                    out[:, t - 1] += pay + np.where(newly, amt, 0.0)
+                else:
+                    newly = (~inT[:, t - 1]) & inT[:, t]
+                    out[:, t - 1] += np.where(newly, amt, 0.0)
+        else:
+            for t in range(1, T + 1):
+                if t < tw:
+                    continue
+                if pol.term_years and t - tw + 1 > pol.term_years:
+                    continue
+                out[:, t - 1] += amt * 0.5 * (inT[:, t - 1].astype(float) + inT[:, t])
     return out
 
 
@@ -110,16 +118,18 @@ def run_stochastic(h: Household, p: Params, T: int = 10, n: int = None,
     dp = load_disease(init.cause)
     paths = _draw_paths(init.state, _transition_matrix(dp), T, n, rng)
 
-    is_L = paths == IDX["L"]
-    is_M = paths == IDX["M"]
-    is_S1 = paths == IDX["S1"]
-    is_S2 = paths == IDX["S2"]
-    is_S = is_S1 | is_S2
     alive = paths != IDX["D"]
+    # 半周期口径（与确定性模式的 π̄ 一致）：当年费用 = 年初状态与年末状态各计半年
+    prev = np.concatenate([np.full((paths.shape[0], 1), IDX[init.state], dtype=np.int8),
+                           paths[:, :-1]], axis=1)
 
-    cost = is_L * cL + is_M * cM + is_S * cS
-    ltc = is_S2 * bS
-    ins = _ins_matrix(h, paths, init)                    # 逐路径、逐保单
+    def _unit(st):
+        return ((st == IDX["L"]) * cL + (st == IDX["M"]) * cM
+                + ((st == IDX["S1"]) | (st == IDX["S2"])) * cS)
+
+    cost = 0.5 * (_unit(prev) + _unit(paths))
+    ltc = 0.5 * ((prev == IDX["S2"]).astype(float) + (paths == IDX["S2"])) * bS
+    ins = _ins_matrix(h, paths, init, dp)                # 逐路径、逐保单
     sb = alive * subs_raw
     # 商业保险超出当年缺口的部分结转下年（与 model._simulate 同一口径）
     pre_gap = np.maximum(0.0, cost - ltc - sb)

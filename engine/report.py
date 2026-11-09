@@ -305,7 +305,7 @@ def build_report(h: Household, p: Params, T: int = 10, with_sensitivity: bool = 
 
     # —— 2. 逐年明细 ——
     year_table = [{
-        "年份": r["year"], "存活概率": round(r["surv"], 3),
+        "年份": r.get("period") or r["year"], "存活概率": round(r["surv"], 3),
         "轻度": round(r["pi_L"], 3), "中度": round(r["pi_M"], 3),
         "重度首年": round(r["pi_S1"], 3), "重度持续": round(r["pi_S2"], 3),
         "照护成本": _hundred(r["exp_cost"]), "长护险支付": _hundred(r["exp_ltc"]),

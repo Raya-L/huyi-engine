@@ -2,7 +2,7 @@
 tests/test_cases.py —— B6 手算对账 + 限额单点校验（A6 第 8 件）
 
 跑法：  pytest -q
-判据：  3 个手算案例的逐年缺口 G、长护险 B、5 年与 10 年缺口现值 PV，
+判据：  5 个手算案例（v1109：新增 D 中度起点有重疾险、E 有剩余等待期）的逐年缺口 G、长护险 B、5 年与 10 年缺口现值 PV，
         全部与 handcalc_expected.json 的相对误差 < 1%；
         另加一个单年案例，验证“触及年度限额”时按限额封顶并置 hit_cap。
 """
@@ -64,10 +64,26 @@ CASES = {
         policies=[Policy(payout_type=PayoutType.lump, amount=100000.0,
                          trigger=Trigger.ci_dementia, term_years=1, wait_months=0)],
     ),
+    "D": dict(
+        city="qingdao", insured="employee", dementia_unit=True,
+        init=InitialState(grade=2, state="M", cause="cognitive", eligible=True,
+                          use_official=False, sev_level=5),
+        policies=[Policy(payout_type=PayoutType.lump, amount=100000.0,
+                         trigger=Trigger.ci_dementia, term_years=1, wait_months=0)],
+    ),
+    "E": dict(
+        city="qingdao", insured="resident", dementia_unit=True,
+        init=InitialState(grade=5, state="S2", cause="cognitive", eligible=True,
+                          use_official=False, sev_level=5),
+        policies=[Policy(payout_type=PayoutType.lump, amount=100000.0,
+                         trigger=Trigger.ci_dementia, term_years=1, wait_months=6)],
+    ),
 }
 
+FIXED_START = {"start_ym": "2026-01"}     # 手算表第 1 年 = 2026 年 1—12 月
 
-@pytest.mark.parametrize("name", ["A", "B", "C"])
+
+@pytest.mark.parametrize("name", ["A", "B", "C", "D", "E"])
 def test_b6_handcalc(name):
     """逐年缺口与长护险给付、5/10 年现值必须与手算表吻合（<1%）。"""
     exp = _load_expected()[name]
@@ -75,7 +91,7 @@ def test_b6_handcalc(name):
     h = _household(c["city"], c["insured"], c["dementia_unit"], policies=c["policies"])
     p = load_params(c["city"])
 
-    rows, pv5, pv10, _ = _simulate(c["init"], h, p, 10)
+    rows, pv5, pv10, _ = _simulate(c["init"], h, p, 10, FIXED_START)
     assert len(rows) == 10
 
     for i, e in enumerate(exp["rows"]):
@@ -141,9 +157,9 @@ def test_no_hit_cap_when_below_limit():
 
 
 def test_run_deterministic_returns_ten_years():
-    """run_deterministic 走 map_initial_state，第 1 年应为 2026（Task6）。"""
+    """run_deterministic 走 map_initial_state；起点为 2026-01 时第 1 年应为 2026。"""
     h = _household("qingdao", "employee", dementia_unit=True)
-    rows = run_deterministic_full(h, load_params("qingdao"), 10)[0]
+    rows = run_deterministic_full(h, load_params("qingdao"), 10, FIXED_START)[0]
     assert [r["year"] for r in rows] == list(range(2026, 2036))
 
 
@@ -233,14 +249,77 @@ def test_combo_consistent_with_depletion_year():
     raw = dict(age=79, sex="female", city="qingdao", insured_type="employee",
                cognition="moderate", cdr="2", mmse=15, months_in_state=12,
                care_mode="institution", dementia_unit=True, enroll_status="continuous",
-               official_level="none", family_funds=100000, family_monthly=1500,
+               official_level="none", family_funds=110000, family_monthly=1500,
                subsidy_monthly=0, caregiver_income_loss=0,
                eat=10, dress=5, groom=0, bowel=10, bladder=5, toilet=5,
                walk=10, transfer=10, stairs=5, bath=0,
                time=1, person=2, place=1, memory=1, vision=3, hearing=3, comm=2)
     h, errs = validate_input(raw)
     assert errs == []
-    r = build_report(h, load_params("qingdao"), with_sensitivity=False)
+    # v1.0.1：床日标准不再随价格增长、缺口略增，存款由 10 万调到 11 万以保持“现值够、逐年先断”的情形；起点固定为 2026-01
+    p = load_params("qingdao")
+    p["start_ym"] = {"value": "2026-01"}
+    r = build_report(h, p, with_sensitivity=False)
     assert "资金缺口" in r["timeline"]
     assert "可覆盖" not in r["combo"]["text"]
     assert "先用完" in r["combo"]["text"]
+
+
+# ---------------- v1.0.1 回归测试（指导教师 11/09 查出的问题） ----------------
+def _lump_total(wait, state, grade):
+    init = InitialState(grade=grade, state=state, cause="cognitive", eligible=True,
+                        use_official=False, sev_level=5)
+    pol = Policy(payout_type=PayoutType.lump, amount=100000.0,
+                 trigger=Trigger.ci_dementia, term_years=1, wait_months=wait)
+    h = _household("qingdao", "employee", True, policies=[pol])
+    rows, _, _, _ = _simulate(init, h, load_params("qingdao"), 10, FIXED_START)
+    return sum(r["ins"] for r in rows)
+
+
+@pytest.mark.parametrize("wait", [3, 6, 12, 24])
+def test_wait_period_does_not_zero_payout(wait):
+    """填了等待期，赔付不能变成 0（旧版 bug）。"""
+    assert _lump_total(wait, "S2", 5) > 0
+    assert _lump_total(wait, "M", 2) > 0
+
+
+def test_lump_from_moderate_counts_later_entries():
+    """中度起点：10 年期望赔付 = 保额 × 10 年内首次进入重度的概率，远大于第 1 年的 0.155。"""
+    tot = _lump_total(0, "M", 2)
+    assert tot > 50000
+
+
+def test_bed_day_standard_not_inflated():
+    """青岛职工案例 A：床日标准 50 元/日不随价格增长，2026—2029 年长护险支付应相同。"""
+    c = CASES["A"]
+    h = _household(c["city"], c["insured"], c["dementia_unit"])
+    rows, _, _, _ = _simulate(c["init"], h, load_params(c["city"]), 10, FIXED_START)
+    b = [round(r["B_S2"]) for r in rows[:4]]
+    assert len(set(b)) == 1, b
+
+
+def test_stochastic_mean_matches_deterministic():
+    """随机模式与确定性模式同一口径：路径均值应接近确定性期望（含商业保险与等待期）。"""
+    import numpy as np
+    from engine.simulate import _draw_paths, _ins_matrix
+    from engine.model import load_disease, _transition_matrix
+    for wait, state, grade in [(0, "M", 2), (6, "S2", 5), (12, "M", 2)]:
+        init = InitialState(grade=grade, state=state, cause="cognitive", eligible=True,
+                            use_official=False, sev_level=5)
+        pol = Policy(payout_type=PayoutType.lump, amount=100000.0,
+                     trigger=Trigger.ci_dementia, term_years=1, wait_months=wait)
+        h = _household("qingdao", "employee", True, policies=[pol])
+        rows, _, _, _ = _simulate(init, h, load_params("qingdao"), 10, FIXED_START)
+        det = np.array([r["ins"] for r in rows])
+        dp = load_disease("cognitive")
+        paths = _draw_paths(state, _transition_matrix(dp), 10, 200000, np.random.default_rng(1))
+        sto = _ins_matrix(h, paths, init, dp).mean(axis=0)
+        assert sto.sum() == pytest.approx(det.sum(), rel=0.02), (wait, state, sto.sum(), det.sum())
+
+
+def test_start_year_follows_input_date():
+    """测算起点不写死：2026 年 11 月起算，第 1 个测算年的年中在 2027 年。"""
+    c = CASES["A"]
+    h = _household(c["city"], c["insured"], c["dementia_unit"])
+    rows, _, _, _ = _simulate(c["init"], h, load_params(c["city"]), 10, {"start_ym": "2026-11"})
+    assert rows[0]["year"] == 2027 and rows[0]["period"] == "2026.11—2027.10"
