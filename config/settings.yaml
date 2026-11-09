@@ -1,6 +1,6 @@
 # 全局财务/模拟参数（§6 D 表，已定）
 # 说明：本文件在 load_params 里最后合并，故这里的键会覆盖城市配置中的同名键。
-version: "v0.1.4"
+version: "v0.1.5"
 engine_version: "v1.0.1"
 
 g:
