@@ -55,9 +55,9 @@ rho_home_bonus:
 
 lambda:
   value: 0.50
-  note: "年度限额系数；年度限额 L = lambda × 上年度全市城乡居民人均可支配收入；原则上上限值，重庆实际限额待查"
+  note: "年度限额系数；年度限额 L = lambda × 上年度全市城乡居民人均可支配收入。重庆市医保局书面答复（2026-11）：居民和职工年度最高支付限额原则上不超过全市上年度城乡居民人均可支配收入的 50%"
   source: "《意见》(六)"
-  status: "已核实上限；实际限额待查"
+  status: "已核实（《意见》+ 重庆市医保局书面答复）"
   validity: "现行"
 
 income_city:
@@ -167,12 +167,12 @@ covers_moderate:
   employee: true
   employee_effective_from: "2024-03-01"
   employee_until: "2026-12-31"
-  employee_after_2027: null
-  employee_after_2027_note: "36号文未把中度失能列为 2027 年后的待遇条件，需向经办确认；未确认前情景 B（默认）按不覆盖计"
+  employee_after_2027: true
+  employee_after_2027_note: "重庆市医保局对项目组 2026-11-03 来信的书面答复：职工按现行政策的失能等级确定待遇享受对象，即 2 级（中度）及 3—5 级（重度 I—III 级）。2027 年起的支付标准（按时长或床日付费办法）计划 2026 年底前出台。v1.0 模型只在重度持续状态计算支付，中度待遇尚未计入（v1.1 补）"
   resident: false
   resident_note: "2027年起步只保重度"
   source: "渝府办发〔2026〕36号；渝医保发〔2023〕40号"
-  status: "2026 年职工已核实；2027 年后待确认"
+  status: "已核实（原文 + 重庆市医保局书面答复，2026-11）"
   validity: "现行"
 
 covers_dementia:
